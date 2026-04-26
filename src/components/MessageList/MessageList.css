@@ -1,0 +1,12 @@
+.message-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  background: #fafbfc;
+}
+
+.loading {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #2861d1;
+}
