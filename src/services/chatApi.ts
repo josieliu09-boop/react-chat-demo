@@ -39,6 +39,7 @@ export function formatteDate(time: number) {
 }
 
 const BASE_URL = 'https://chat-server-production-72d5.up.railway.app'
+// const BASE_URL = 'http://localhost:3000'
 
 // 保存消息到数据库
 export async function saveMessage(session_id: string, role: string, content: string) {

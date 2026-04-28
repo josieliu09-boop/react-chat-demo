@@ -14,6 +14,9 @@ A simple AI chat application built with React + TypeScript.
 npm install
 npm run dev
 
+## live Demo
+https://react-chat-demo-sigma.vercel.app/
+
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
