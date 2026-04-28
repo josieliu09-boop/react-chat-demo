@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Message } from "../types/message";
 import type { ChatSession } from "../types/chat";
-import { sendChatMessage } from "../services/chatApi";
+import { sendChatMessage , saveMessage,getMessages,saveSession,getSessions} from "../services/chatApi";
 
-const STORAGE_KEY = 'chat_messages'
-
-const CHAT_LIST_STORAGE_KEY = 'chat_list'
-const CURRET_CHAT_ID_STORAGE_KEY = 'current_chat_id'
 
 const createDefaultChat = (title = '新对话'): ChatSession => (
     {
@@ -25,13 +21,7 @@ const createDefaultChat = (title = '新对话'): ChatSession => (
 )
 export function useChat() {
     const [chatList, setChatList] = useState<ChatSession[]>(
-        () => {
-            const savedChatList = localStorage.getItem(CHAT_LIST_STORAGE_KEY)
-            if (savedChatList) {
-                return JSON.parse(savedChatList)
-            }
-            return [createDefaultChat()]
-        }
+      [createDefaultChat()]
     )
     const handleRenameChat = (chatId: number, newTitle: string) => {
         const trimmedTitle = newTitle.trim()
@@ -45,23 +35,10 @@ export function useChat() {
                     : chat
             )
         )
+        saveSession(String(chatId),trimmedTitle)
     }
-    const [currentChatId, setCurrentChatId] = useState<number | null>(() => {
-        const saveCurrentChatId = localStorage.getItem(CURRET_CHAT_ID_STORAGE_KEY)
-        if (saveCurrentChatId) {
-            return Number(saveCurrentChatId)
-        }
-        return null
-    })
-
-    //持久化chatList
-    useEffect(() => {
-        localStorage.setItem(CHAT_LIST_STORAGE_KEY, JSON.stringify(chatList))
-    }, [chatList])
-    //持久化currentChatId
-    useEffect(() => {
-        localStorage.setItem(CURRET_CHAT_ID_STORAGE_KEY, String(currentChatId))
-    }, [currentChatId])
+    const [currentChatId, setCurrentChatId] = useState<number | null>(null)
+    
     //兜底修正currentChatId
     useEffect(() => {
         if (chatList.length === 0) return
@@ -70,6 +47,38 @@ export function useChat() {
             setCurrentChatId(chatList[0].id)
         }
     }, [chatList, currentChatId])
+    useEffect(()=>{
+        getSessions().then(
+            (dbSessions)=>{
+              if (dbSessions.length === 0) return  
+              const formattedSessions:ChatSession[] = dbSessions.map((s:any)=>({
+                id:Number(s.id),
+                title:s.title,
+                createdAt:new Date(s.created_at).getTime(),
+                messages:[]
+              }))
+              setChatList(formattedSessions)
+              setCurrentChatId(formattedSessions[0].id)
+            }
+        )
+    },[])
+    useEffect(()=>{
+        if (!currentChatId) return
+        getMessages(String(currentChatId)).then((dbMessages)=>{
+            if (dbMessages.length === 0) return
+            setChatList((prev)=>prev.map((chat)=>{
+                if (chat.id != currentChatId) return chat
+                const formattedMessages:Message[]=dbMessages.map((msg:any)=>({
+                    id:msg.id,
+                    role:msg.role === 'assistant'?'bot':msg.role ,
+                    content:msg.content,
+                    createdAt:new Date(msg.created_at).getTime(),
+                    showTime:true
+                }))
+                return {...chat,messages:formattedMessages}
+            }))
+        })
+    },[currentChatId])
     //推导值
     const currentChat = chatList.find((chat) => chat.id === currentChatId)
     const messages = currentChat?.messages || []
@@ -93,13 +102,12 @@ export function useChat() {
     }
 
 
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
-    }, [messages])
 //消息发送出去以后的逻辑
     const sendMessageRequest = async (messageId:number,text:string)=>{
      try {
             const reply = await sendChatMessage(text)
+            await saveMessage (String(currentChatId),"user",text)
+            await saveMessage(String(currentChatId),'assistant',reply)
             const botMessage: Message = {
                 id: Date.now() + 1,
                 role: 'bot',
@@ -306,11 +314,11 @@ export function useChat() {
         sendMessageRequest(messageId,retryMessage.content)
     }
     //创建新的对话
-    const handleCreateChat = () => {
-        const newChatId = Date.now()
+    const handleCreateChat = async() => {    
         const newChat = createDefaultChat()
-        setChatList((prev) => [...prev, newChat])
-        setCurrentChatId(newChatId)
+        await saveSession(String(newChat.id),newChat.title)
+        setChatList((prev)=>[...prev,newChat])
+        setCurrentChatId(newChat.id)
     }
     //删除对话
     const handleDeleteChat = (chatId: number) => {
@@ -341,6 +349,7 @@ export function useChat() {
             } : chat
         ))
     }
+  
 
     return {
         chatList,
