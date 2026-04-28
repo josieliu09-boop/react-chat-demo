@@ -37,7 +37,8 @@ export function formatteDate(time: number) {
     const seconds = date.getSeconds();
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
-const BASE_URL = 'http://localhost:3000'
+
+const BASE_URL = 'https://chat-server-production-72d5.up.railway.app'
 
 // 保存消息到数据库
 export async function saveMessage(session_id: string, role: string, content: string) {
