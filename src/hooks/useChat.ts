@@ -65,6 +65,7 @@ export function useChat() {
     useEffect(()=>{
         if (!currentChatId) return
         getMessages(String(currentChatId)).then((dbMessages)=>{
+            if (!Array.isArray(dbMessages)) return
             if (dbMessages.length === 0) return
             setChatList((prev)=>prev.map((chat)=>{
                 if (chat.id != currentChatId) return chat

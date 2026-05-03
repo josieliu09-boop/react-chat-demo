@@ -38,35 +38,56 @@ export function formatteDate(time: number) {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-const BASE_URL = 'https://chat-server-production-72d5.up.railway.app'
-// const BASE_URL = 'http://localhost:3000'
+// const BASE_URL = 'https://chat-server-production-72d5.up.railway.app'
+const BASE_URL = 'http://localhost:3000'
 
 // 保存消息到数据库
 export async function saveMessage(session_id: string, role: string, content: string) {
-  await fetch(`${BASE_URL}/messages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id, role, content })
-  })
+    await fetch(`${BASE_URL}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id, role, content })
+    })
 }
 
 // 获取某个会话的历史消息
 export async function getMessages(session_id: string) {
-  const response = await fetch(`${BASE_URL}/messages/${session_id}`)
-  return response.json()
+    const token = localStorage.getItem('token')
+    const response = await fetch(`${BASE_URL}/messages/${session_id}`,{
+        headers:{
+            'authorization':token|| '' 
+        }
+    })
+    return response.json()
 }
-  //保存会话
-    export async function saveSession(id:string,title:string) {
-        console.log('saveSession called',id,title);
-        
-        await fetch(`${BASE_URL}/sessions`,{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({id,title})
+//保存会话
+export async function saveSession(id: string, title: string) {
+    console.log('saveSession called', id, title);
+
+    await fetch(`${BASE_URL}/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, title })
+    })
+}
+//获取所有会话
+export async function getSessions() {
+    const response = await fetch(`${BASE_URL}/sessions`)
+    return response.json()
+}
+export async function register(email:string,password:string) {
+    const response = await fetch(`${BASE_URL}/auth/register`,{
+        method:'POST',
+        headers:{'Content_Type':'applicatuon/json'},
+        body:JSON.stringify({email,password})
         })
-    }
-    //获取所有会话
-    export async function getSessions(){
-        const response = await fetch(`${BASE_URL}/sessions`)
         return response.json()
-    }
+}
+export async function login(email:string,password:string) {
+    const response = await fetch(`${BASE_URL}/auth/login`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email,password})
+        })
+        return response.json()
+}

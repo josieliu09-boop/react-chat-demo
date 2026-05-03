@@ -4,6 +4,8 @@ import ChatInput from "./components/ChatInput/ChatInput";
 import ChatSidebar from "./components/ChatSidebar/ChatSidebar";
 import './App.css'
 import { useChat } from "./hooks/useChat";
+import Login from "./components/Login/Login";
+import { useState } from "react";
 
 
 function App() {
@@ -11,7 +13,11 @@ function App() {
         currentChatId,
         setCurrentChatId,
         handleCreateChat,handleDeleteChat, handleRenameChat,handleRetryMessage,messages,loading,handleSend,handleClear} = useChat()
-  return (
+  const [token,setToken]=useState<string|null>(localStorage.getItem('token'))
+       if (!token) {
+      return <Login onLogin={(t)=>setToken(t)} />
+    }
+  return ( 
     <div className="app">
       <div className="chat-layout">
         <ChatSidebar
