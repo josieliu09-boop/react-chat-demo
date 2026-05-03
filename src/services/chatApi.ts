@@ -78,7 +78,7 @@ export async function getSessions() {
 export async function register(email:string,password:string) {
     const response = await fetch(`${BASE_URL}/auth/register`,{
         method:'POST',
-        headers:{'Content_Type':'applicatuon/json'},
+        headers:{'Content-Type':'application/json'},
         body:JSON.stringify({email,password})
         })
         return response.json()
