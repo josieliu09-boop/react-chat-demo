@@ -30,7 +30,10 @@ function App() {
 
          />
           <div className="chat-container">
-        <Header />
+        <Header onLogout={()=>{
+          localStorage.removeItem('token')
+          setToken(null)
+        }} />
         <MessageList onRetry={handleRetryMessage} messages={messages} loading={loading} />
         <ChatInput onClear={handleClear} onSend={handleSend} disabled={loading} />
       </div>
