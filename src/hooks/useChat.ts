@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Message } from "../types/message";
 import type { ChatSession } from "../types/chat";
-import { sendChatMessage , saveMessage,getMessages,saveSession,getSessions} from "../services/chatApi";
+import { sendChatMessage, saveMessage, getMessages, saveSession, getSessions } from "../services/chatApi";
 
 
 const createDefaultChat = (title = '新对话'): ChatSession => (
@@ -19,9 +19,9 @@ const createDefaultChat = (title = '新对话'): ChatSession => (
         ]
     }
 )
-export function useChat() {
+export function useChat(token: string | null) {
     const [chatList, setChatList] = useState<ChatSession[]>(
-      [createDefaultChat()]
+        [createDefaultChat()]
     )
     const handleRenameChat = (chatId: number, newTitle: string) => {
         const trimmedTitle = newTitle.trim()
@@ -35,10 +35,10 @@ export function useChat() {
                     : chat
             )
         )
-        saveSession(String(chatId),trimmedTitle)
+        saveSession(String(chatId), trimmedTitle)
     }
     const [currentChatId, setCurrentChatId] = useState<number | null>(null)
-    
+
     //兜底修正currentChatId
     useEffect(() => {
         if (chatList.length === 0) return
@@ -47,39 +47,38 @@ export function useChat() {
             setCurrentChatId(chatList[0].id)
         }
     }, [chatList, currentChatId])
-    useEffect(()=>{
-        getSessions().then(
-            (dbSessions)=>{
-              if (dbSessions.length === 0) return  
-              const formattedSessions:ChatSession[] = dbSessions.map((s:any)=>({
-                id:Number(s.id),
-                title:s.title,
-                createdAt:new Date(s.created_at).getTime(),
-                messages:[]
-              }))
-              setChatList(formattedSessions)
-              setCurrentChatId(formattedSessions[0].id)
-            }
-        )
-    },[])
-    useEffect(()=>{
+    useEffect(() => {
+        getSessions().then((dbSessions) => {
+            if (!Array.isArray(dbSessions) || dbSessions.length === 0) return
+            const formattedSessions: ChatSession[] = dbSessions.map((s: any) => ({
+                id: Number(s.id),
+                title: s.title,
+                createdAt: new Date(s.created_at).getTime(),
+                messages: []
+            }))
+            setChatList(formattedSessions)
+            setCurrentChatId(formattedSessions[0].id)
+
+        })
+    }, [token])
+    useEffect(() => {
         if (!currentChatId) return
-        getMessages(String(currentChatId)).then((dbMessages)=>{
+        getMessages(String(currentChatId)).then((dbMessages) => {
             if (!Array.isArray(dbMessages)) return
             if (dbMessages.length === 0) return
-            setChatList((prev)=>prev.map((chat)=>{
+            setChatList((prev) => prev.map((chat) => {
                 if (chat.id != currentChatId) return chat
-                const formattedMessages:Message[]=dbMessages.map((msg:any)=>({
-                    id:msg.id,
-                    role:msg.role === 'assistant'?'bot':msg.role ,
-                    content:msg.content,
-                    createdAt:new Date(msg.created_at).getTime(),
-                    showTime:true
+                const formattedMessages: Message[] = dbMessages.map((msg: any) => ({
+                    id: msg.id,
+                    role: msg.role === 'assistant' ? 'bot' : msg.role,
+                    content: msg.content,
+                    createdAt: new Date(msg.created_at).getTime(),
+                    showTime: true
                 }))
-                return {...chat,messages:formattedMessages}
+                return { ...chat, messages: formattedMessages }
             }))
         })
-    },[currentChatId])
+    }, [currentChatId])
     //推导值
     const currentChat = chatList.find((chat) => chat.id === currentChatId)
     const messages = currentChat?.messages || []
@@ -103,12 +102,12 @@ export function useChat() {
     }
 
 
-//消息发送出去以后的逻辑
-    const sendMessageRequest = async (messageId:number,text:string)=>{
-     try {
+    //消息发送出去以后的逻辑
+    const sendMessageRequest = async (messageId: number, text: string) => {
+        try {
             const reply = await sendChatMessage(text)
-            await saveMessage (String(currentChatId),"user",text)
-            await saveMessage(String(currentChatId),'assistant',reply)
+            await saveMessage(String(currentChatId), "user", text)
+            await saveMessage(String(currentChatId), 'assistant', reply)
             const botMessage: Message = {
                 id: Date.now() + 1,
                 role: 'bot',
@@ -178,7 +177,7 @@ export function useChat() {
             setLoading(false)
             timeoutRef.current = null
         }
-        
+
     }
 
 
@@ -213,7 +212,7 @@ export function useChat() {
 
         )
         setLoading(true)
-        sendMessageRequest(userMessage.id,text)
+        sendMessageRequest(userMessage.id, text)
         // try {
         //     const reply = await sendChatMessage(text)
         //     const botMessage: Message = {
@@ -287,38 +286,38 @@ export function useChat() {
         // }
     }
     //请求失败 重试
-    const handleRetryMessage = (messageId:number) => {
-          const currentChat = chatList.find((chat) => chat.id === currentChatId)
-                const otherChats = chatList.filter(
-                    chat => chat.id !== currentChatId
-                )
-                if (!currentChat) return chatList
-              const retryMessage =  currentChat.messages.find(message=>message.id === messageId)
-               if (!retryMessage) return chatList
-  setChatList(()=>{
-            const updatedMessages:Message[]=currentChat.messages.map(message =>{
+    const handleRetryMessage = (messageId: number) => {
+        const currentChat = chatList.find((chat) => chat.id === currentChatId)
+        const otherChats = chatList.filter(
+            chat => chat.id !== currentChatId
+        )
+        if (!currentChat) return chatList
+        const retryMessage = currentChat.messages.find(message => message.id === messageId)
+        if (!retryMessage) return chatList
+        setChatList(() => {
+            const updatedMessages: Message[] = currentChat.messages.map(message => {
                 if (message.id === messageId) {
-                    return{
+                    return {
                         ...message,
-                        status:'sending'
+                        status: 'sending'
                     }
                 }
                 return message
             })
-                const updatedCurrentChat = {
-                    ...currentChat,
-                     messages: updatedMessages
-                }
-       return [updatedCurrentChat,...otherChats]
-  })
-    setLoading(true)
-        sendMessageRequest(messageId,retryMessage.content)
+            const updatedCurrentChat = {
+                ...currentChat,
+                messages: updatedMessages
+            }
+            return [updatedCurrentChat, ...otherChats]
+        })
+        setLoading(true)
+        sendMessageRequest(messageId, retryMessage.content)
     }
     //创建新的对话
-    const handleCreateChat = async() => {    
+    const handleCreateChat = async () => {
         const newChat = createDefaultChat()
-        await saveSession(String(newChat.id),newChat.title)
-        setChatList((prev)=>[...prev,newChat])
+        await saveSession(String(newChat.id), newChat.title)
+        setChatList((prev) => [...prev, newChat])
         setCurrentChatId(newChat.id)
     }
     //删除对话
@@ -350,11 +349,16 @@ export function useChat() {
             } : chat
         ))
     }
-  
+
+    const resetChat = () => {
+        setChatList([createDefaultChat()])
+        setCurrentChatId(null)
+    }
 
     return {
         chatList,
         currentChatId,
+        resetChat,
         setCurrentChatId,
         handleCreateChat,
         handleDeleteChat,
@@ -363,6 +367,6 @@ export function useChat() {
         messages,
         loading,
         handleClear,
-        handleSend
+        handleSend,
     }
 }

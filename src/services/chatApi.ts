@@ -43,9 +43,12 @@ const BASE_URL = 'http://localhost:3000'
 
 // 保存消息到数据库
 export async function saveMessage(session_id: string, role: string, content: string) {
+    const token = localStorage.getItem('token')
     await fetch(`${BASE_URL}/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+             'authorization':token|| '' 
+         },
         body: JSON.stringify({ session_id, role, content })
     })
 }
@@ -63,16 +66,23 @@ export async function getMessages(session_id: string) {
 //保存会话
 export async function saveSession(id: string, title: string) {
     console.log('saveSession called', id, title);
-
+const token = localStorage.getItem('token')
     await fetch(`${BASE_URL}/sessions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' ,
+            'authorization':token|| ''
+        },
         body: JSON.stringify({ id, title })
     })
 }
 //获取所有会话
 export async function getSessions() {
-    const response = await fetch(`${BASE_URL}/sessions`)
+    const token = localStorage.getItem('token')
+    const response = await fetch(`${BASE_URL}/sessions`,
+      {  headers:{
+            'authorization':token|| '' 
+        }}
+    )
     return response.json()
 }
 export async function register(email:string,password:string) {
