@@ -101,3 +101,13 @@ export async function login(email:string,password:string) {
         })
         return response.json()
 }
+
+export async function deleteSession(id:string) {
+    const token  = localStorage.getItem('token')
+    await fetch(`${BASE_URL}/sessions/${id}`,{
+        method:'DELETE',
+        headers:{
+            'authorization':token||''
+        }
+    })
+}

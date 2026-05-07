@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Message } from "../types/message";
 import type { ChatSession } from "../types/chat";
-import { sendChatMessage, saveMessage, getMessages, saveSession, getSessions } from "../services/chatApi";
+import { sendChatMessage, saveMessage, getMessages, saveSession, getSessions,deleteSession } from "../services/chatApi";
 
 
 const createDefaultChat = (title = '新对话'): ChatSession => (
@@ -205,8 +205,11 @@ export function useChat(token: string | null) {
                 title: currentChat.title === '新对话' ? generateChatTitle(text) : currentChat.title,
                 messages: [...currentChat.messages, userMessage]
             }
-
-
+            //标题变了就同步到数据库
+            if (currentChat.title === '新对话') {
+                const newTitle = generateChatTitle(text)
+                saveSession(String(currentChatId), newTitle)
+            }
             return [updatedCurrentChat, ...otherChats]
         }
 
@@ -322,6 +325,7 @@ export function useChat(token: string | null) {
     }
     //删除对话
     const handleDeleteChat = (chatId: number) => {
+        deleteSession(String(chatId))
         const filteredChatList = chatList.filter((chat) => chatId !== chat.id)
         if (filteredChatList.length === 0) {
             const newChat = createDefaultChat()
